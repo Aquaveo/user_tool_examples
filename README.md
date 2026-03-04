@@ -3,10 +3,14 @@ user_tool_examples
 
 ## Introduction
 This Python package contains examples of how a user can define custom tools for integration with XMS. Included are the following examples:
-- 2D Mesh from 2dm: Reads a tri/quad mesh from a .2dm formatted file and creates a 2D Mesh module object in SMS.
-- UGrid from xmc: Reads a geometry from an .xmc formatted file and creates a UGrid module object in XMS.
-- Dataset from dat: Reads a dataset from a .DAT formatted file and adds it to an existing geometry in XMS.
-- Compute Dataset Difference: Creates a diff dataset from two input datasets already loaded in XMS.
+- 2D Mesh from 2dm: Reads a tri/quad mesh from a .2dm formatted file and creates a 2D Mesh module object in SMS. This
+example contains a simple demonstation of using the `xmsgrid` and `xmsconstraint` libraries to build a geometry for XMS.
+- UGrid from xmc: Reads a geometry from an .xmc formatted file and creates a UGrid module object in XMS. In this example
+we use the `xmsconstraint` file format and I/O.
+- Dataset from dat: Reads a dataset from a .DAT formatted file and adds it to an existing geometry in XMS. Basic usage
+of the `xmsdatasets` library for writing dataset files is shown here.
+- Compute Dataset Difference: Creates a diff dataset from two input datasets already loaded in XMS. This example
+demonstrates using `xmsdatasets` to read dataset files.
 
 ## Creating the Tool Class
 All tools inherit from an abstract base class called `Tool`. The definition for `Tool` is located in `xmstool_core`. 
@@ -153,7 +157,35 @@ Similarly, several methods are also provided to send data back to XMS.
 - `set_output_raster_file()`: Sends a raster file written by the tool to be read by XMS.
 
 ## Registering the Tool
-In order for our tool to appear when running XMS, we need to add its information into a `Tools.xml` file. The XML file
+To mark a python package as containing tools for XMS, three things are needed: 
+1) An entry point designating the root of the package (usually specified in the pyproject.toml)
+2) An `aqmeta.toml` file in that root folder that specifies the location of any tool-specifying XML files
+3) The XML files that detail the parameters and entrypoints of each tool
+
+### Entry point
+XMS uses entrypoint metadata to filter the list of packages when searching for tools. The specific entry point name 
+it looks for is `xms.dmi.aqmeta`. As an example, the entry in a pyproject.toml file would look like this:
+
+```toml
+[project.entry-points."xms.dmi.aqmeta"]
+EXAMPLE_TOOLS = "user_tool_examples"
+```
+
+### AQMeta
+The AQMeta file is a simple file that contains a list of XML files that specify the tools that the package provides. 
+These file paths are relative to the AQMeta file itself.
+
+```toml
+[DMI]
+definitions = [
+  "user_tool_examples.xml" 
+  ]
+migrations = [
+  ]
+```
+
+### XML Files
+To specify which tools appear when running XMS, we need to list them in a "tools" XML file. This XML file
 is used to find and load the available tools when the XMS application starts up. Here is a trimmed version of this
 package's XML file, containing only the `MeshFrom2dmTool` example.
 ```xml
@@ -176,20 +208,5 @@ package's XML file, containing only the `MeshFrom2dmTool` example.
 - class_name: The Python class name of the `Tool` implementation.
 - module_name: The Python module name of the `Tool` implementation.
 - program_name: This is an optional attribute a tool can use to restrict the XMS application it is available in.
-- uuid: A unique identifier for the tool.
-
-```python
-# TODO: This needs to be updated for aqmeta stuff
-```
-To complete the tool registration, the `pyproject.toml` file must include a classifier as follows:
-```
-[project]
-...
-classifiers = ['XMS DMI Definition :: XML :: xms/tool_runner/tools/Tools.xml']
-
-[project.entry-points."xms.dmi.interfaces"]
-tool_runner = "xms.tool_runner"
-```
-
-When the XMS application starts it will find and load all tools from Python packages that have the properly defined
-package metadata.
+- uuid: A unique identifier for the tool. Note that no two tools should ever have the same identifiers. When creating
+a new tool, generate a new random UUID (v4) for it.
